@@ -3,7 +3,7 @@
 
 provider "registry.terraform.io/fluxcd/flux" {
   version     = "1.2.3"
-  constraints = "1.2.3"
+  constraints = ">= 1.2.0"
   hashes = [
     "h1:/26OC+lJ9CVCnf500UBHG7fFEYpVmeNrSWl4US+rNaA=",
     "zh:00eb4c54146bfc1f4d22dfd14c0109728355424088d421392b28e0e5fd76b6a7",

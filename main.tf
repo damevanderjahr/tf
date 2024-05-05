@@ -9,7 +9,7 @@
 # Construct KinD cluster
 # ========================================================================
 resource "kind_cluster" "this" {
-  name = "flux-e2e"
+  name = "flux-kind-cluster"
 }
 
 module "tls_private_key" {
