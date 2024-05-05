@@ -46,32 +46,32 @@ module "github_repository" {
 # Manage the SSH keypair flux uses to authenticate with GitHub
 # ========================================================================
 
-resource "kubernetes_namespace" "flux_system" {
-  metadata {
-    name = "flux-system"
-  }
+# resource "kubernetes_namespace" "flux_system" {
+#   metadata {
+#     name = "flux-system"
+#   }
 
-  lifecycle {
-    ignore_changes = [metadata]
-  }
-}
+#   lifecycle {
+#     ignore_changes = [metadata]
+#   }
+# }
 
-resource "kubernetes_secret" "ssh_keypair" {
-  metadata {
-    name      = "flux-system"
-    namespace = "flux-system"
-  }
+# resource "kubernetes_secret" "ssh_keypair" {
+#   metadata {
+#     name      = "flux-system"
+#     namespace = "flux-system"
+#   }
 
-  type = "Opaque"
+#   type = "Opaque"
 
-  data = {
-    "identity.pub" = module.tls_private_key.public_key_openssh
-    "identity"     = module.tls_private_key.private_key_pem
-    "known_hosts"  = "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
-  }
+#   data = {
+#     "identity.pub" = module.tls_private_key.public_key_openssh
+#     "identity"     = module.tls_private_key.private_key_pem
+#     "known_hosts"  = "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
+#   }
 
-  depends_on = [kubernetes_namespace.flux_system]
-}
+#   depends_on = [kubernetes_namespace.flux_system]
+# }
 
 resource "flux_bootstrap_git" "this" {
   depends_on = [
@@ -123,3 +123,28 @@ resource "null_resource" "git_commit" {
 #     EOF
 #   }
 # }
+
+resource "kubernetes_namespace" "flux_system" {
+  metadata {
+    name = "demo"
+  }
+
+  lifecycle {
+    ignore_changes = [metadata]
+  }
+}
+
+resource "kubernetes_secret" "kbot_token" {
+  metadata {
+    name      = "kbot"
+    namespace = "demo"
+  }
+
+  type = "Opaque"
+
+  data = {
+    "token" = var.TELE_TOKEN
+  }
+
+  depends_on = [resource.flux_bootstrap_git.this]
+}
