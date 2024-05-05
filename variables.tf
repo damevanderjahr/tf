@@ -16,12 +16,12 @@ variable "GKE_NUM_NODES" {
 
 
 variable "GITHUB_OWNER" {
-  type = string
+  type        = string
   description = "GitHub repo owner name (id)"
 }
 
 variable "GITHUB_TOKEN" {
-  type = string
+  type        = string
   description = "GitHub token with repo permissions"
 }
 

@@ -5,9 +5,11 @@
 #   GKE_NUM_NODES  = 2
 # }
 
-
-module "kind_cluster" {
-  source = "github.com/den-vasyliev/tf-kind-cluster"
+# ========================================================================
+# Construct KinD cluster
+# ========================================================================
+resource "kind_cluster" "this" {
+  name = "flux-e2e"
 }
 
 module "tls_private_key" {
@@ -18,7 +20,7 @@ module "tls_private_key" {
 }
 
 module "github_repository" {
-  source                   = "github.com/den-vasyliev/tf-github-repository"
+  source                   = "./modules/github_repository"
   github_owner             = var.GITHUB_OWNER
   github_token             = var.GITHUB_TOKEN
   repository_name          = var.FLUX_GITHUB_REPO
@@ -27,46 +29,60 @@ module "github_repository" {
 }
 
 
-provider "flux" {
-  kubernetes = {
-    config_path = module.kind_cluster.kubeconfig
+# provider "flux" {
+#   kubernetes = {
+#     config_path = module.kind_cluster.kubeconfig
+#   }
+#   git = {
+#     url = "ssh://git@github.com/${var.GITHUB_OWNER}/${var.FLUX_GITHUB_REPO}.git"
+#     ssh = {
+#       username    = "git"
+#       private_key = module.tls_private_key.private_key_pem
+#     }
+#   }
+# }
+
+# ========================================================================
+# Manage the SSH keypair flux uses to authenticate with GitHub
+# ========================================================================
+
+resource "kubernetes_namespace" "flux_system" {
+  metadata {
+    name = "flux-system"
   }
-  git = {
-    url = "ssh://git@github.com/${var.GITHUB_OWNER}/${var.FLUX_GITHUB_REPO}.git"
-    ssh = {
-      username    = "git"
-      private_key = module.tls_private_key.private_key_pem
-    }
+
+  lifecycle {
+    ignore_changes = [metadata]
   }
 }
 
+resource "kubernetes_secret" "ssh_keypair" {
+  metadata {
+    name      = "flux-system"
+    namespace = "flux-system"
+  }
+
+  type = "Opaque"
+
+  data = {
+    "identity.pub" = module.tls_private_key.public_key_openssh
+    "identity"     = module.tls_private_key.private_key_pem
+    "known_hosts"  = "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
+  }
+
+  depends_on = [kubernetes_namespace.flux_system]
+}
 
 resource "flux_bootstrap_git" "this" {
   depends_on = [
-    module.kind_cluster,
+    resource.kind_cluster.this,
     module.tls_private_key,
     module.github_repository
   ]
 
   path = "clusters"
 }
-# module "flux_bootstrap" {
-#   depends_on = [
-#     module.kind_cluster,
-#     module.tls_private_key,
-#     module.github_repository
-#   ]
-#   source            = "./modules/flux_bootstrap"
-#   github_repository = "${var.GITHUB_OWNER}/${var.FLUX_GITHUB_REPO}"
-#   private_key       = module.tls_private_key.private_key_pem
-#   # config_path       = module.gke_cluster.kubeconfig
-#   config_path       = module.kind_cluster.kubeconfig
-#   github_token      = var.GITHUB_TOKEN
 
-#   providers = {
-#     flux = flux
-#   }
-# }
 
 resource "null_resource" "git_commit" {
   depends_on = [
@@ -90,20 +106,20 @@ resource "null_resource" "git_commit" {
   }
 }
 
-resource "null_resource" "create_secret" {
-  depends_on = [
-    resource.null_resource.git_commit
-  ]
+# resource "null_resource" "create_secret" {
+#   depends_on = [
+#     resource.null_resource.git_commit
+#   ]
 
-  provisioner "local-exec" {
-    command = <<EOF
-      while [ $(kubectl get namespaces --kubeconfig=${module.kind_cluster.kubeconfig} | grep demo | wc -l) -eq 0 ]; do
-        sleep 5
-      done
-      kubectl create secret generic kbot \
-        --from-literal=token=${var.TELE_TOKEN}\
-        -n demo \
-        --kubeconfig=${module.kind_cluster.kubeconfig}
-    EOF
-  }
-}
+#   provisioner "local-exec" {
+#     command = <<EOF
+#       while [ $(kubectl get namespaces --kubeconfig=${module.kind_cluster.kubeconfig} | grep demo | wc -l) -eq 0 ]; do
+#         sleep 5
+#       done
+#       kubectl create secret generic kbot \
+#         --from-literal=token=${var.TELE_TOKEN}\
+#         -n demo \
+#         --kubeconfig=${module.kind_cluster.kubeconfig}
+#     EOF
+#   }
+# }
