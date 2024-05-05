@@ -36,3 +36,20 @@ variable "FLUX_GITHUB_TARGET_PATH" {
   default     = "clusters"
   description = "Flux manifests subdirectory"
 }
+
+variable "config_path" {
+  type        = string
+  default     = "~/.kube/config"
+  description = "The path to the kubeconfig file"
+}
+
+variable "github_token" {
+  type        = string
+  default     = ""
+  description = "The token used to authenticate with the Git repository"
+}
+
+variable "TELE_TOKEN" {
+  type        = string
+  description = "Telegram kbot token"
+}

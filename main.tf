@@ -5,6 +5,7 @@
 #   GKE_NUM_NODES  = 2
 # }
 
+
 module "kind_cluster" {
   source = "github.com/den-vasyliev/tf-kind-cluster"
 }
@@ -25,23 +26,51 @@ module "github_repository" {
   public_key_openssh_title = "flux-ssh-pub"
 }
 
-module "flux_bootstrap" {
-  # depends_on = [
-  #   module.kind_cluster,
-  #   module.tls_private_key,
-  #   module.github_repository
-  # ]
-  source            = "github.com/den-vasyliev/tf-fluxcd-flux-bootstrap"
-  github_repository = "${var.GITHUB_OWNER}/${var.FLUX_GITHUB_REPO}"
-  private_key       = module.tls_private_key.private_key_pem
-  # config_path       = module.gke_cluster.kubeconfig
-  config_path       = module.kind_cluster.kubeconfig
-  github_token      = var.GITHUB_TOKEN
+
+provider "flux" {
+  kubernetes = {
+    config_path = module.kind_cluster.kubeconfig
+  }
+  git = {
+    url = "ssh://git@github.com/${var.GITHUB_OWNER}/${var.FLUX_GITHUB_REPO}.git"
+    ssh = {
+      username    = "git"
+      private_key = module.tls_private_key.private_key_pem
+    }
+  }
 }
+
+
+resource "flux_bootstrap_git" "this" {
+  depends_on = [
+    module.kind_cluster,
+    module.tls_private_key,
+    module.github_repository
+  ]
+
+  path = "clusters"
+}
+# module "flux_bootstrap" {
+#   depends_on = [
+#     module.kind_cluster,
+#     module.tls_private_key,
+#     module.github_repository
+#   ]
+#   source            = "./modules/flux_bootstrap"
+#   github_repository = "${var.GITHUB_OWNER}/${var.FLUX_GITHUB_REPO}"
+#   private_key       = module.tls_private_key.private_key_pem
+#   # config_path       = module.gke_cluster.kubeconfig
+#   config_path       = module.kind_cluster.kubeconfig
+#   github_token      = var.GITHUB_TOKEN
+
+#   providers = {
+#     flux = flux
+#   }
+# }
 
 resource "null_resource" "git_commit" {
   depends_on = [
-    module.flux_bootstrap
+    resource.flux_bootstrap_git.this
   ]
 
   provisioner "local-exec" {
@@ -57,6 +86,24 @@ resource "null_resource" "git_commit" {
       git push
       cd ..
       rm -rf ${var.FLUX_GITHUB_REPO}
+    EOF
+  }
+}
+
+resource "null_resource" "create_secret" {
+  depends_on = [
+    resource.null_resource.git_commit
+  ]
+
+  provisioner "local-exec" {
+    command = <<EOF
+      while [ $(kubectl get namespaces --kubeconfig=${module.kind_cluster.kubeconfig} | grep demo | wc -l) -eq 0 ]; do
+        sleep 5
+      done
+      kubectl create secret generic kbot \
+        --from-literal=token=${var.TELE_TOKEN}\
+        -n demo \
+        --kubeconfig=${module.kind_cluster.kubeconfig}
     EOF
   }
 }
