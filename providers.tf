@@ -5,7 +5,7 @@ provider "flux" {
     cluster_ca_certificate = module.gke_cluster.cluster_ca_certificate
   }
   git = {
-    url = module.github_repository.values.http_clone_url
+    url = "ssh://git@github.com/${var.GITHUB_OWNER}/${var.FLUX_GITHUB_REPO}.git"
     ssh = {
       username    = "git"
       private_key = module.tls_private_key.private_key_pem
