@@ -46,3 +46,11 @@ kubectl get ns
 ## Flux config
 
 Bootstrap will create "flux-gitops" repo in the GitHub account. As additional step, source and release yamls from [demo_app/demo](demo_app/demo) directory would be commited to the new repo.
+
+Flux configured with
+
+```yaml
+    reconcileStrategy: Revision
+```
+
+not the ChartVersion, to track new main branch commits, not only the new tags in helm chart.
