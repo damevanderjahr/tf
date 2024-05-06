@@ -14,14 +14,13 @@ variable "GKE_NUM_NODES" {
   description = "Number of nodes"
 }
 
-
 variable "GITHUB_OWNER" {
-  type = string
+  type        = string
   description = "GitHub repo owner name (id)"
 }
 
 variable "GITHUB_TOKEN" {
-  type = string
+  type        = string
   description = "GitHub token with repo permissions"
 }
 
@@ -35,4 +34,33 @@ variable "FLUX_GITHUB_TARGET_PATH" {
   type        = string
   default     = "clusters"
   description = "Flux manifests subdirectory"
+}
+
+variable "config_path" {
+  type        = string
+  default     = "~/.kube/config"
+  description = "The path to the kubeconfig file"
+}
+
+variable "github_token" {
+  type        = string
+  default     = ""
+  description = "The token used to authenticate with the Git repository"
+}
+
+variable "TELE_TOKEN" {
+  type        = string
+  description = "Telegram kbot token"
+}
+
+variable "algorithm" {
+  type        = string
+  default     = "ECDSA"
+  description = "The cryptographic algorithm (e.g. RSA, ECDSA)"
+}
+
+variable "ecdsa_curve" {
+  type        = string
+  default     = "P256"
+  description = "The elliptic curve (e.g. P256, P384, P521)"
 }
