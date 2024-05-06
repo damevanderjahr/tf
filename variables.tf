@@ -14,7 +14,6 @@ variable "GKE_NUM_NODES" {
   description = "Number of nodes"
 }
 
-
 variable "GITHUB_OWNER" {
   type        = string
   description = "GitHub repo owner name (id)"
@@ -52,4 +51,16 @@ variable "github_token" {
 variable "TELE_TOKEN" {
   type        = string
   description = "Telegram kbot token"
+}
+
+variable "algorithm" {
+  type        = string
+  default     = "ECDSA"
+  description = "The cryptographic algorithm (e.g. RSA, ECDSA)"
+}
+
+variable "ecdsa_curve" {
+  type        = string
+  default     = "P256"
+  description = "The elliptic curve (e.g. P256, P384, P521)"
 }

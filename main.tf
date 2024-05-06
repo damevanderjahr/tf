@@ -15,8 +15,8 @@ resource "kind_cluster" "this" {
 module "tls_private_key" {
   source = "github.com/den-vasyliev/tf-hashicorp-tls-keys"
 
-  #algorithm   = var.algorithm
-  #ecdsa_curve = var.ecdsa_curve
+  algorithm   = var.algorithm
+  ecdsa_curve = var.ecdsa_curve
 }
 
 module "github_repository" {
@@ -27,20 +27,6 @@ module "github_repository" {
   public_key_openssh       = module.tls_private_key.public_key_openssh
   public_key_openssh_title = "flux-ssh-pub"
 }
-
-
-# provider "flux" {
-#   kubernetes = {
-#     config_path = module.kind_cluster.kubeconfig
-#   }
-#   git = {
-#     url = "ssh://git@github.com/${var.GITHUB_OWNER}/${var.FLUX_GITHUB_REPO}.git"
-#     ssh = {
-#       username    = "git"
-#       private_key = module.tls_private_key.private_key_pem
-#     }
-#   }
-# }
 
 # ========================================================================
 # Manage the SSH keypair flux uses to authenticate with GitHub
@@ -83,7 +69,6 @@ resource "flux_bootstrap_git" "this" {
   path = "clusters"
 }
 
-
 resource "null_resource" "git_commit" {
   depends_on = [
     resource.flux_bootstrap_git.this
@@ -106,25 +91,7 @@ resource "null_resource" "git_commit" {
   }
 }
 
-# resource "null_resource" "create_secret" {
-#   depends_on = [
-#     resource.null_resource.git_commit
-#   ]
-
-#   provisioner "local-exec" {
-#     command = <<EOF
-#       while [ $(kubectl get namespaces --kubeconfig=${module.kind_cluster.kubeconfig} | grep demo | wc -l) -eq 0 ]; do
-#         sleep 5
-#       done
-#       kubectl create secret generic kbot \
-#         --from-literal=token=${var.TELE_TOKEN}\
-#         -n demo \
-#         --kubeconfig=${module.kind_cluster.kubeconfig}
-#     EOF
-#   }
-# }
-
-resource "kubernetes_namespace" "flux_system" {
+resource "kubernetes_namespace" "demo" {
   metadata {
     name = "demo"
   }
@@ -132,6 +99,11 @@ resource "kubernetes_namespace" "flux_system" {
   lifecycle {
     ignore_changes = [metadata]
   }
+
+  depends_on = [
+    resource.flux_bootstrap_git.this,
+    resource.kind_cluster.this
+  ]
 }
 
 resource "kubernetes_secret" "kbot_token" {
@@ -146,5 +118,8 @@ resource "kubernetes_secret" "kbot_token" {
     "token" = var.TELE_TOKEN
   }
 
-  depends_on = [resource.flux_bootstrap_git.this]
+  depends_on = [
+    resource.flux_bootstrap_git.this,
+    resource.kubernetes_namespace.demo
+  ]
 }
