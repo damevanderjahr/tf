@@ -1,16 +1,16 @@
-# module "gke_cluster" {
-#   source         = "github.com/damevanderjahr/tf-google-gke-cluster"
-#   GOOGLE_REGION  = var.GOOGLE_REGION
-#   GOOGLE_PROJECT = var.GOOGLE_PROJECT
-#   GKE_NUM_NODES  = 2
-# }
+module "gke_cluster" {
+  source         = "github.com/damevanderjahr/tf-google-gke-cluster"
+  GOOGLE_REGION  = var.GOOGLE_REGION
+  GOOGLE_PROJECT = var.GOOGLE_PROJECT
+  GKE_NUM_NODES  = 2
+}
 
 # ========================================================================
 # Construct KinD cluster
 # ========================================================================
-resource "kind_cluster" "this" {
-  name = "flux-kind-cluster"
-}
+# resource "kind_cluster" "this" {
+#   name = "flux-kind-cluster"
+# }
 
 module "tls_private_key" {
   source = "github.com/den-vasyliev/tf-hashicorp-tls-keys"
@@ -61,7 +61,7 @@ module "github_repository" {
 
 resource "flux_bootstrap_git" "this" {
   depends_on = [
-    resource.kind_cluster.this,
+    module.gke_cluster,
     module.tls_private_key,
     module.github_repository
   ]
@@ -102,7 +102,7 @@ resource "kubernetes_namespace" "demo" {
 
   depends_on = [
     resource.flux_bootstrap_git.this,
-    resource.kind_cluster.this
+    module.gke_cluster
   ]
 }
 
