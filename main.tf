@@ -1,17 +1,24 @@
-# module "gke_cluster" {
-#   source         = "github.com/damevanderjahr/tf-google-gke-cluster"
-#   GOOGLE_REGION  = var.GOOGLE_REGION
-#   GOOGLE_PROJECT = var.GOOGLE_PROJECT
-#   GKE_NUM_NODES  = 2
-# }
+# ========================================================================
+# Construct GKE cluster
+# ========================================================================
+module "gke_cluster" {
+  source           = "github.com/damevanderjahr/tf-google-gke-cluster"
+  GOOGLE_REGION    = var.GOOGLE_REGION
+  GOOGLE_PROJECT   = var.GOOGLE_PROJECT
+  GKE_NUM_NODES    = var.GKE_NUM_NODES
+  GKE_MACHINE_TYPE = var.GKE_MACHINE_TYPE
+}
 
 # ========================================================================
 # Construct KinD cluster
 # ========================================================================
-resource "kind_cluster" "this" {
-  name = "flux-kind-cluster"
-}
+# resource "kind_cluster" "this" {
+#   name = "flux-kind-cluster"
+# }
 
+# ========================================================================
+# Construct TLS key
+# ========================================================================
 module "tls_private_key" {
   source = "github.com/den-vasyliev/tf-hashicorp-tls-keys"
 
@@ -19,6 +26,9 @@ module "tls_private_key" {
   ecdsa_curve = var.ecdsa_curve
 }
 
+# ========================================================================
+# Construct TLS key
+# ========================================================================
 module "github_repository" {
   source                   = "./modules/github_repository"
   github_owner             = var.GITHUB_OWNER
@@ -29,39 +39,11 @@ module "github_repository" {
 }
 
 # ========================================================================
-# Manage the SSH keypair flux uses to authenticate with GitHub
+# Bootstrup Flux
 # ========================================================================
-
-# resource "kubernetes_namespace" "flux_system" {
-#   metadata {
-#     name = "flux-system"
-#   }
-
-#   lifecycle {
-#     ignore_changes = [metadata]
-#   }
-# }
-
-# resource "kubernetes_secret" "ssh_keypair" {
-#   metadata {
-#     name      = "flux-system"
-#     namespace = "flux-system"
-#   }
-
-#   type = "Opaque"
-
-#   data = {
-#     "identity.pub" = module.tls_private_key.public_key_openssh
-#     "identity"     = module.tls_private_key.private_key_pem
-#     "known_hosts"  = "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
-#   }
-
-#   depends_on = [kubernetes_namespace.flux_system]
-# }
-
 resource "flux_bootstrap_git" "this" {
   depends_on = [
-    resource.kind_cluster.this,
+    module.gke_cluster,
     module.tls_private_key,
     module.github_repository
   ]
@@ -69,6 +51,9 @@ resource "flux_bootstrap_git" "this" {
   path = "clusters"
 }
 
+# ========================================================================
+# Commit Flux kbot configs
+# ========================================================================
 resource "null_resource" "git_commit" {
   depends_on = [
     resource.flux_bootstrap_git.this
@@ -91,6 +76,9 @@ resource "null_resource" "git_commit" {
   }
 }
 
+# ========================================================================
+# Commit Add kbot namespace and secret
+# ========================================================================
 resource "kubernetes_namespace" "demo" {
   metadata {
     name = "demo"
@@ -102,7 +90,7 @@ resource "kubernetes_namespace" "demo" {
 
   depends_on = [
     resource.flux_bootstrap_git.this,
-    resource.kind_cluster.this
+    module.gke_cluster
   ]
 }
 
