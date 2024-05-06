@@ -1,0 +1,6 @@
+GOOGLE_PROJECT = "***"
+GOOGLE_REGION  = "us-east1-b"
+GKE_NUM_NODES  = 2
+GKE_MACHINE_TYPE = "e2-medium"
+GITHUB_OWNER   = "***"
+FLUX_GITHUB_REPO = "flux-gitops"

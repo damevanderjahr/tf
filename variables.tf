@@ -11,7 +11,14 @@ variable "GOOGLE_REGION" {
 
 variable "GKE_NUM_NODES" {
   type        = number
+  default     = 2
   description = "Number of nodes"
+}
+
+variable "GKE_MACHINE_TYPE" {
+  type        = string
+  default     = "e2-medium"
+  description = "Machine type"
 }
 
 variable "GITHUB_OWNER" {
