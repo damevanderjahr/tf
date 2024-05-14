@@ -36,6 +36,9 @@ module "github_repository" {
   repository_name          = var.FLUX_GITHUB_REPO
   public_key_openssh       = module.tls_private_key.public_key_openssh
   public_key_openssh_title = "flux-ssh-pub"
+  GCP_PROJECT_ID           = var.GOOGLE_PROJECT
+  GCP_SA_JSON              = var.GCP_SA_JSON
+  GCP_SECRET_NAME          = "TELE_TOKEN"
 }
 
 # ========================================================================
@@ -65,7 +68,10 @@ resource "null_resource" "git_commit" {
         rm -rf ${var.FLUX_GITHUB_REPO}
       fi
       git clone ${module.github_repository.values.http_clone_url}    
-      cp -r demo_app/* ${var.FLUX_GITHUB_REPO}/${var.FLUX_GITHUB_TARGET_PATH}/     
+      cp -r demo_app/demo ${var.FLUX_GITHUB_REPO}/${var.FLUX_GITHUB_TARGET_PATH}/   
+      cp -r demo_app/flux-system ${var.FLUX_GITHUB_REPO}/${var.FLUX_GITHUB_TARGET_PATH}/
+      cp -r demo_app/.github ${var.FLUX_GITHUB_REPO}/
+      cp demo_app/secrets-template.yaml ${var.FLUX_GITHUB_REPO}/
       cd ${var.FLUX_GITHUB_REPO}
       git add .
       git commit -m "Added all manifests"
@@ -79,35 +85,35 @@ resource "null_resource" "git_commit" {
 # ========================================================================
 # Commit Add kbot namespace and secret
 # ========================================================================
-resource "kubernetes_namespace" "demo" {
-  metadata {
-    name = "demo"
-  }
+# resource "kubernetes_namespace" "demo" {
+#   metadata {
+#     name = "demo"
+#   }
 
-  lifecycle {
-    ignore_changes = [metadata]
-  }
+#   lifecycle {
+#     ignore_changes = [metadata]
+#   }
 
-  depends_on = [
-    resource.flux_bootstrap_git.this,
-    module.gke_cluster
-  ]
-}
+#   depends_on = [
+#     resource.flux_bootstrap_git.this,
+#     module.gke_cluster
+#   ]
+# }
 
-resource "kubernetes_secret" "kbot_token" {
-  metadata {
-    name      = "kbot"
-    namespace = "demo"
-  }
+# resource "kubernetes_secret" "kbot_token" {
+#   metadata {
+#     name      = "kbot"
+#     namespace = "demo"
+#   }
 
-  type = "Opaque"
+#   type = "Opaque"
 
-  data = {
-    "token" = var.TELE_TOKEN
-  }
+#   data = {
+#     "token" = var.TELE_TOKEN
+#   }
 
-  depends_on = [
-    resource.flux_bootstrap_git.this,
-    resource.kubernetes_namespace.demo
-  ]
-}
+#   depends_on = [
+#     resource.flux_bootstrap_git.this,
+#     resource.kubernetes_namespace.demo
+#   ]
+# }
