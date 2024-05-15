@@ -36,6 +36,13 @@ terraform apply -var-file vars.tfvars  -var="GITHUB_TOKEN=$GITHUB_TOKEN" -var="T
 terraform destroy -var-file vars.tfvars  -var="GITHUB_TOKEN=$GITHUB_TOKEN" -var="TELE_TOKEN=$TELE_TOKEN"
 ```
 
+## Import keyring and keys
+
+```bash
+terraform import -var-file vars.tfvars  -var="GITHUB_TOKEN=$GITHUB_TOKEN" -var="GCP_SA_JSON=$CREDS" "module.kms.google_kms_key_ring.key_ring" "projects/smiling-tide-422119-d5/locations/global/keyRings/sops-flux"
+terraform import -var-file vars.tfvars  -var="GITHUB_TOKEN=$GITHUB_TOKEN" -var="GCP_SA_JSON=$CREDS" "module.kms.google_kms_crypto_key.key_ephemeral[0]" "projects/smiling-tide-422119-d5/locations/global/keyRings/sops-flux/cryptoKeys/sops-key-flux"
+```
+
 ## Kubectl config after apply
 
 ```bash

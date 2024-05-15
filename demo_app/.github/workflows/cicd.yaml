@@ -26,7 +26,7 @@ jobs:
 
       - name: Get secret from Google Cloud Secret Manager
         run: |
-          echo "SECRET_VALUE=$(gcloud secrets versions access latest --secret='${{ secrets.GCP_SECRET_NAME }}' --project='${{ secrets.GCP_PROJECT_ID }}' --format='value(payload.data)')" >> $GITHUB_ENV
+          echo "SECRET_VALUE=$(gcloud secrets versions access latest --secret='${{ secrets.GCP_SECRET_NAME }}' --project='${{ secrets.GCP_PROJECT_ID }}' --format='value(payload.data)' | base64)" >> $GITHUB_ENV
       
       - name: Generate secret.yaml
         uses: mikefarah/yq@master
