@@ -15,7 +15,7 @@ Example: [vars.tfvars.example](vars.tfvars.example)
 
 Attention: 2 x e2-medium node pool seems the minimal working configuration for Flux.
 
-## Tokens and credentials
+## Tokens and credentials without SOPS flow
 
 ```bash
 read -s GITHUB_TOKEN
@@ -58,8 +58,10 @@ not the ChartVersion, to track new main branch commits, not only the new tags in
 
 ## SOPS flow
 
+main.tf content is actual not for the firts terraform apply run, because we cant delete key-connected GCP assets
+
 ```bash
-# export vars
+# export token and GCP credentials
 read -s GITHUB_TOKEN
 export GITHUB_TOKEN
 export CREDS=$(cat /your/path/credentials.json)
