@@ -55,10 +55,10 @@ variable "github_token" {
   description = "The token used to authenticate with the Git repository"
 }
 
-variable "TELE_TOKEN" {
-  type        = string
-  description = "Telegram kbot token"
-}
+# variable "TELE_TOKEN" {
+#   type        = string
+#   description = "Telegram kbot token"
+# }
 
 variable "algorithm" {
   type        = string
@@ -70,4 +70,9 @@ variable "ecdsa_curve" {
   type        = string
   default     = "P256"
   description = "The elliptic curve (e.g. P256, P384, P521)"
+}
+
+variable "GCP_SA_JSON" {
+  type        = string
+  description = "Service account credentials in json"
 }

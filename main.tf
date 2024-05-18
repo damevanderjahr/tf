@@ -36,6 +36,9 @@ module "github_repository" {
   repository_name          = var.FLUX_GITHUB_REPO
   public_key_openssh       = module.tls_private_key.public_key_openssh
   public_key_openssh_title = "flux-ssh-pub"
+  GCP_PROJECT_ID           = var.GOOGLE_PROJECT
+  GCP_SA_JSON              = var.GCP_SA_JSON
+  GCP_SECRET_NAME          = "TELE_TOKEN"
 }
 
 # ========================================================================
@@ -52,62 +55,109 @@ resource "flux_bootstrap_git" "this" {
 }
 
 # ========================================================================
-# Commit Flux kbot configs
+# GKE identity settings
 # ========================================================================
-resource "null_resource" "git_commit" {
-  depends_on = [
+
+module "gke-workload-identity" {
+  source              = "terraform-google-modules/kubernetes-engine/google//modules/workload-identity"
+  use_existing_k8s_sa = true
+  annotate_k8s_sa     = true
+  name                = "kustomize-controller"
+  namespace           = "flux-system"
+  project_id          = var.GOOGLE_PROJECT
+  location            = var.GOOGLE_REGION
+  cluster_name        = "main"
+  roles               = ["roles/cloudkms.cryptoKeyEncrypterDecrypter"]
+
+  module_depends_on = [
     resource.flux_bootstrap_git.this
   ]
-
-  provisioner "local-exec" {
-    command = <<EOF
-      if [ -d ${var.FLUX_GITHUB_REPO} ]; then
-        rm -rf ${var.FLUX_GITHUB_REPO}
-      fi
-      git clone ${module.github_repository.values.http_clone_url}    
-      cp -r demo_app/* ${var.FLUX_GITHUB_REPO}/${var.FLUX_GITHUB_TARGET_PATH}/     
-      cd ${var.FLUX_GITHUB_REPO}
-      git add .
-      git commit -m "Added all manifests"
-      git push
-      cd ..
-      rm -rf ${var.FLUX_GITHUB_REPO}
-    EOF
-  }
 }
 
 # ========================================================================
-# Commit Add kbot namespace and secret
+# Initial kms config
 # ========================================================================
-resource "kubernetes_namespace" "demo" {
-  metadata {
-    name = "demo"
-  }
 
-  lifecycle {
-    ignore_changes = [metadata]
-  }
+# module "kms" {
+#   source          = "terraform-google-modules/kms/google"
+#   version         = "2.2.3"
+#   project_id      = var.GOOGLE_PROJECT
+#   keyring         = "sops-flux"
+#   location        = "global"
+#   keys            = ["sops-key-flux"]
+#   prevent_destroy = true
+# }
 
-  depends_on = [
-    resource.flux_bootstrap_git.this,
-    module.gke_cluster
-  ]
-}
+# import {
+#   id = "projects/smiling-tide-422119-d5/locations/global/keyRings/sops-flux"
+#   to = module.kms.google_kms_key_ring.key_ring
+# }
 
-resource "kubernetes_secret" "kbot_token" {
-  metadata {
-    name      = "kbot"
-    namespace = "demo"
-  }
+# import {
+#   id = "projects/smiling-tide-422119-d5/locations/global/keyRings/sops-flux/cryptoKeys/sops-key-flux"
+#   to = module.kms.google_kms_crypto_key.key[0]
+# }
 
-  type = "Opaque"
+# ========================================================================
+# Commit Flux kbot configs
+# ========================================================================
+# resource "null_resource" "git_commit" {
+#   depends_on = [
+#     resource.flux_bootstrap_git.this
+#   ]
 
-  data = {
-    "token" = var.TELE_TOKEN
-  }
+#   provisioner "local-exec" {
+#     command = <<EOF
+#       if [ -d ${var.FLUX_GITHUB_REPO} ]; then
+#         rm -rf ${var.FLUX_GITHUB_REPO}
+#       fi
+#       git clone ${module.github_repository.values.http_clone_url}    
+#       cp -r demo_app/demo ${var.FLUX_GITHUB_REPO}/${var.FLUX_GITHUB_TARGET_PATH}/   
+#       cp -r demo_app/flux-system ${var.FLUX_GITHUB_REPO}/${var.FLUX_GITHUB_TARGET_PATH}/
+#       cp -r demo_app/.github ${var.FLUX_GITHUB_REPO}/
+#       cp demo_app/secret-template.yaml ${var.FLUX_GITHUB_REPO}/
+#       cd ${var.FLUX_GITHUB_REPO}
+#       git add .
+#       git commit -m "Added all manifests"
+#       git push
+#       cd ..
+#       rm -rf ${var.FLUX_GITHUB_REPO}
+#     EOF
+#   }
+# }
 
-  depends_on = [
-    resource.flux_bootstrap_git.this,
-    resource.kubernetes_namespace.demo
-  ]
-}
+# ========================================================================
+# Commit Add kbot namespace and secret manually
+# ========================================================================
+# resource "kubernetes_namespace" "demo" {
+#   metadata {
+#     name = "demo"
+#   }
+
+#   lifecycle {
+#     ignore_changes = [metadata]
+#   }
+
+#   depends_on = [
+#     resource.flux_bootstrap_git.this,
+#     module.gke_cluster
+#   ]
+# }
+
+# resource "kubernetes_secret" "kbot_token" {
+#   metadata {
+#     name      = "kbot"
+#     namespace = "demo"
+#   }
+
+#   type = "Opaque"
+
+#   data = {
+#     "token" = var.TELE_TOKEN
+#   }
+
+#   depends_on = [
+#     resource.flux_bootstrap_git.this,
+#     resource.kubernetes_namespace.demo
+#   ]
+# }
