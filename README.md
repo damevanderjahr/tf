@@ -75,7 +75,7 @@ terraform import -var-file vars.tfvars  -var="GITHUB_TOKEN=$GITHUB_TOKEN" -var="
 terraform plan -var-file vars.tfvars  -var="GITHUB_TOKEN=$GITHUB_TOKEN" -var="GCP_SA_JSON=$CREDS"
 terraform apply -var-file vars.tfvars  -var="GITHUB_TOKEN=$GITHUB_TOKEN" -var="GCP_SA_JSON=$CREDS"
 
-# Move configs to the flux-gitops clobbed repo
+# Move configs to the flux-gitops clonned repo (Attention - gcp sa is hard-coded)
 cp -r demo_app/demo ../flux-gitops/clusters/
 cp -r demo_app/flux-system/ ../flux-gitops/clusters/
 cp -r demo_app/.github ../flux-gitops/
