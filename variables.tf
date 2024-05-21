@@ -1,25 +1,25 @@
-variable "GOOGLE_PROJECT" {
-  type        = string
-  description = "GCP project to use"
-}
+# variable "GOOGLE_PROJECT" {
+#   type        = string
+#   description = "GCP project to use"
+# }
 
-variable "GOOGLE_REGION" {
-  type        = string
-  default     = "us-central1-c"
-  description = "GCP region to use"
-}
+# variable "GOOGLE_REGION" {
+#   type        = string
+#   default     = "us-central1-c"
+#   description = "GCP region to use"
+# }
 
-variable "GKE_NUM_NODES" {
-  type        = number
-  default     = 2
-  description = "Number of nodes"
-}
+# variable "GKE_NUM_NODES" {
+#   type        = number
+#   default     = 2
+#   description = "Number of nodes"
+# }
 
-variable "GKE_MACHINE_TYPE" {
-  type        = string
-  default     = "e2-medium"
-  description = "Machine type"
-}
+# variable "GKE_MACHINE_TYPE" {
+#   type        = string
+#   default     = "e2-medium"
+#   description = "Machine type"
+# }
 
 variable "GITHUB_OWNER" {
   type        = string
@@ -33,7 +33,7 @@ variable "GITHUB_TOKEN" {
 
 variable "FLUX_GITHUB_REPO" {
   type        = string
-  default     = "flux-gitops"
+  default     = "flux-gitops-monitoring"
   description = "Flux GitOps repository"
 }
 
@@ -55,10 +55,10 @@ variable "github_token" {
   description = "The token used to authenticate with the Git repository"
 }
 
-# variable "TELE_TOKEN" {
-#   type        = string
-#   description = "Telegram kbot token"
-# }
+variable "TELE_TOKEN" {
+  type        = string
+  description = "Telegram kbot token"
+}
 
 variable "algorithm" {
   type        = string
@@ -72,7 +72,7 @@ variable "ecdsa_curve" {
   description = "The elliptic curve (e.g. P256, P384, P521)"
 }
 
-variable "GCP_SA_JSON" {
-  type        = string
-  description = "Service account credentials in json"
-}
+# variable "GCP_SA_JSON" {
+#   type        = string
+#   description = "Service account credentials in json"
+# }

@@ -1,20 +1,20 @@
 # ========================================================================
 # Construct GKE cluster
-# ========================================================================
-module "gke_cluster" {
-  source           = "github.com/damevanderjahr/tf-google-gke-cluster"
-  GOOGLE_REGION    = var.GOOGLE_REGION
-  GOOGLE_PROJECT   = var.GOOGLE_PROJECT
-  GKE_NUM_NODES    = var.GKE_NUM_NODES
-  GKE_MACHINE_TYPE = var.GKE_MACHINE_TYPE
-}
+# # ========================================================================
+# module "gke_cluster" {
+#   source           = "github.com/damevanderjahr/tf-google-gke-cluster"
+#   GOOGLE_REGION    = var.GOOGLE_REGION
+#   GOOGLE_PROJECT   = var.GOOGLE_PROJECT
+#   GKE_NUM_NODES    = var.GKE_NUM_NODES
+#   GKE_MACHINE_TYPE = var.GKE_MACHINE_TYPE
+# }
 
 # ========================================================================
 # Construct KinD cluster
 # ========================================================================
-# resource "kind_cluster" "this" {
-#   name = "flux-kind-cluster"
-# }
+resource "kind_cluster" "this" {
+  name = "flux-kind-cluster"
+}
 
 # ========================================================================
 # Construct TLS key
@@ -27,7 +27,7 @@ module "tls_private_key" {
 }
 
 # ========================================================================
-# Construct TLS key
+# Construct Github repo
 # ========================================================================
 module "github_repository" {
   source                   = "./modules/github_repository"
@@ -36,9 +36,9 @@ module "github_repository" {
   repository_name          = var.FLUX_GITHUB_REPO
   public_key_openssh       = module.tls_private_key.public_key_openssh
   public_key_openssh_title = "flux-ssh-pub"
-  GCP_PROJECT_ID           = var.GOOGLE_PROJECT
-  GCP_SA_JSON              = var.GCP_SA_JSON
-  GCP_SECRET_NAME          = "TELE_TOKEN"
+  # GCP_PROJECT_ID           = var.GOOGLE_PROJECT
+  # GCP_SA_JSON              = var.GCP_SA_JSON
+  # GCP_SECRET_NAME          = "TELE_TOKEN"
 }
 
 # ========================================================================
@@ -46,7 +46,7 @@ module "github_repository" {
 # ========================================================================
 resource "flux_bootstrap_git" "this" {
   depends_on = [
-    module.gke_cluster,
+    resource.kind_cluster.this,
     module.tls_private_key,
     module.github_repository
   ]
@@ -58,21 +58,21 @@ resource "flux_bootstrap_git" "this" {
 # GKE identity settings
 # ========================================================================
 
-module "gke-workload-identity" {
-  source              = "terraform-google-modules/kubernetes-engine/google//modules/workload-identity"
-  use_existing_k8s_sa = true
-  annotate_k8s_sa     = true
-  name                = "kustomize-controller"
-  namespace           = "flux-system"
-  project_id          = var.GOOGLE_PROJECT
-  location            = var.GOOGLE_REGION
-  cluster_name        = "main"
-  roles               = ["roles/cloudkms.cryptoKeyEncrypterDecrypter"]
+# module "gke-workload-identity" {
+#   source              = "terraform-google-modules/kubernetes-engine/google//modules/workload-identity"
+#   use_existing_k8s_sa = true
+#   annotate_k8s_sa     = true
+#   name                = "kustomize-controller"
+#   namespace           = "flux-system"
+#   project_id          = var.GOOGLE_PROJECT
+#   location            = var.GOOGLE_REGION
+#   cluster_name        = "main"
+#   roles               = ["roles/cloudkms.cryptoKeyEncrypterDecrypter"]
 
-  module_depends_on = [
-    resource.flux_bootstrap_git.this
-  ]
-}
+#   module_depends_on = [
+#     resource.flux_bootstrap_git.this
+#   ]
+# }
 
 # ========================================================================
 # Initial kms config
@@ -129,35 +129,35 @@ module "gke-workload-identity" {
 # ========================================================================
 # Commit Add kbot namespace and secret manually
 # ========================================================================
-# resource "kubernetes_namespace" "demo" {
-#   metadata {
-#     name = "demo"
-#   }
+resource "kubernetes_namespace" "demo" {
+  metadata {
+    name = "demo"
+  }
 
-#   lifecycle {
-#     ignore_changes = [metadata]
-#   }
+  lifecycle {
+    ignore_changes = [metadata]
+  }
 
-#   depends_on = [
-#     resource.flux_bootstrap_git.this,
-#     module.gke_cluster
-#   ]
-# }
+  depends_on = [
+    resource.flux_bootstrap_git.this,
+    # module.gke_cluster
+  ]
+}
 
-# resource "kubernetes_secret" "kbot_token" {
-#   metadata {
-#     name      = "kbot"
-#     namespace = "demo"
-#   }
+resource "kubernetes_secret" "kbot_token" {
+  metadata {
+    name      = "kbot"
+    namespace = "demo"
+  }
 
-#   type = "Opaque"
+  type = "Opaque"
 
-#   data = {
-#     "token" = var.TELE_TOKEN
-#   }
+  data = {
+    "token" = var.TELE_TOKEN
+  }
 
-#   depends_on = [
-#     resource.flux_bootstrap_git.this,
-#     resource.kubernetes_namespace.demo
-#   ]
-# }
+  depends_on = [
+    resource.flux_bootstrap_git.this,
+    resource.kubernetes_namespace.demo
+  ]
+}

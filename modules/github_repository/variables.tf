@@ -36,17 +36,17 @@ variable "public_key_openssh_title" {
   description = "The title for OpenSSH public key"
 }
 
-variable "GCP_PROJECT_ID" {
-  type        = string
-  description = "GCP_PROJECT_ID secret"
-}
+# variable "GCP_PROJECT_ID" {
+#   type        = string
+#   description = "GCP_PROJECT_ID secret"
+# }
 
-variable "GCP_SA_JSON" {
-  type        = string
-  description = "GCP_SA_JSON secret"
-}
+# variable "GCP_SA_JSON" {
+#   type        = string
+#   description = "GCP_SA_JSON secret"
+# }
 
-variable "GCP_SECRET_NAME" {
-  type        = string
-  description = "GCP_SECRET_NAME secret"
-}
+# variable "GCP_SECRET_NAME" {
+#   type        = string
+#   description = "GCP_SECRET_NAME secret"
+# }
