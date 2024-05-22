@@ -1,0 +1,134 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: fluent-bit
+  namespace: monitoring
+spec:
+  releaseName: fluent-bit
+  chart:
+    spec:
+      chart: fluent-bit
+      version: 0.46.7
+      sourceRef:
+        kind: HelmRepository
+        name: fluent-bit
+        namespace: flux-system
+  interval: 5m
+  values:
+    config:
+      service: |
+        [SERVICE]
+            Flush         5
+        #    Daemon        Off
+            log_level     error
+            Parsers_File  parsers.conf
+            HTTP_Server  On
+            HTTP_Listen  0.0.0.0
+            HTTP_PORT    2020
+      inputs: |
+        [INPUT]
+            Name              tail
+            Path              /var/log/containers/*.log
+            Parser            docker
+            Tag               kube.*
+      filters: |
+        [FILTER]
+            Name                kubernetes
+            Match               kube.*
+            Merge_Log           On
+            Keep_Log            Off
+            K8S-Logging.Parser  On
+            K8S-Logging.Exclude On
+        [FILTER]
+            Name   lua
+            Match  source.docker.*
+            script /fluent-bit/scripts/docker-metadata.lua
+            call   encrich_with_docker_metadata
+      outputs: |
+        [OUTPUT]
+            Name                 opentelemetry
+            Match *
+            Host                 otel-collector-collector.monitoring.svc.cluster.local
+            Port                 3030
+            metrics_uri          /v1/metrics
+            logs_uri             /v1/logs
+            traces_uri           /v1/traces
+            Log_response_payload True
+            tls                  off
+            tls.verify           off
+            # add user-defined labels
+            add_label            app fluent-bit
+            add_label            color blue
+      customParsers: |
+        [PARSER]
+            Name   docker
+            Format json
+            Time_Key time
+            Time_Format %Y-%m-%dT%H:%M:%S.%L
+            Time_Keep On
+    luaScripts:
+      docker-metadata.lua: |
+        DOCKER_VAR_DIR = '/var/lib/docker/containers/'
+        DOCKER_CONTAINER_CONFIG_FILE = '/config.v2.json'
+        DOCKER_CONTAINER_METADATA = {
+          ['docker.container_name'] = '\"Name\":\"/?(.-)\"',
+          ['docker.container_image'] = '\"Image\":\"/?(.-)\"',
+          ['docker.container_started'] = '\"StartedAt\":\"/?(.-)\"'
+        }
+
+        cache = {}
+
+        -- Gets metadata from config.v2.json file for container
+        function get_container_metadata_from_disk(container_id)
+          local docker_config_file = DOCKER_VAR_DIR .. container_id .. DOCKER_CONTAINER_CONFIG_FILE
+          fl = io.open(docker_config_file, 'r')
+
+          if fl == nil then
+            return nil
+          end
+
+          -- Parse json file and create record for cache
+          local data = {}
+          for line in fl:lines() do
+            for key, regex in pairs(DOCKER_CONTAINER_METADATA) do
+              local match = line:match(regex)
+              if match then
+                data[key] = match
+              end
+            end
+          end
+          fl:close()
+
+          if next(data) == nil then
+            return nil
+          else
+            return data
+          end
+        end
+
+        function encrich_with_docker_metadata(tag, timestamp, record)
+          -- Get container id from tag
+          container_id = tag:match'.*%.(.*)'
+          if not container_id then
+            return 0, 0, 0
+          end
+
+          -- Add container_id to record
+          new_record = record
+          new_record['docker.container_id'] = container_id
+
+          -- Check if we have fresh cache record for container
+          local cached_data = cache[container_id]
+          if cached_data == nil then
+            cached_data = get_container_metadata_from_disk(container_id)
+          end
+
+          -- Metadata found in cache or got from disk, enrich record
+          if cached_data then
+            for key, regex in pairs(DOCKER_CONTAINER_METADATA) do
+              new_record[key] = cached_data[key]
+            end
+          end
+
+          return 1, timestamp, new_record
+        end

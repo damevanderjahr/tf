@@ -96,3 +96,18 @@ terraform state list
 # destroy
 terraform destroy -var-file vars.tfvars -var="GITHUB_TOKEN=$GITHUB_TOKEN" -var="GCP_SA_JSON=$CREDS"
 ```
+
+## Monitoring
+
+Local env tuning
+
+```bash
+sudo sysctl fs.inotify.max_user_watches=524288
+sudo sysctl fs.inotify.max_user_instances=512
+```
+
+```bash
+export METRICS_HOST="otel-collector-collector.monitoring.svc.cluster.local:4317"
+kubectl create secret generic kbot-m -n demo \
+    --from-literal=address="$METRICS_HOST"
+```

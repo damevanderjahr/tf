@@ -1,0 +1,21 @@
+# seems not used
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  replicas: 1
+  serviceAccountName: prometheus
+  serviceMonitorSelector:
+    matchLabels:
+      team: frontend
+  ruleSelector:
+    matchLabels:
+      role: alert-rules
+  resources:
+    requests:
+      memory: 400Mi
+  additionalScrapeConfigs:
+    name: prometheus-config
+    key: prometheus.yml
