@@ -20,31 +20,42 @@ spec:
         [SERVICE]
             Flush         5
         #    Daemon        Off
-            log_level     error
+            log_level     info
             Parsers_File  parsers.conf
             HTTP_Server  On
             HTTP_Listen  0.0.0.0
             HTTP_PORT    2020
       inputs: |
         [INPUT]
-            Name              tail
-            Path              /var/log/containers/*.log
-            Parser            docker
-            Tag               kube.*
+            Name    tail
+            Tag     kube.*
+            Path    /var/log/containers/kbot*.log
+            multiline.parser              docker, cri
       filters: |
         [FILTER]
-            Name                kubernetes
-            Match               kube.*
-            Merge_Log           On
-            Keep_Log            Off
+            Name             kubernetes
+            Match            kube.*
+            Kube_URL         https://kubernetes.default.svc:443
+            Kube_CA_File     /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            Kube_Token_File  /var/run/secrets/kubernetes.io/serviceaccount/token
+            Kube_Tag_Prefix  kube.var.log.containers.
             K8S-Logging.Parser  On
-            K8S-Logging.Exclude On
-        [FILTER]
-            Name   lua
-            Match  source.docker.*
-            script /fluent-bit/scripts/docker-metadata.lua
-            call   encrich_with_docker_metadata
+            Merge_Log        On
+            Merge_Log_Key    log_processed
+        # [FILTER]
+        #     Name                grep
+        #     Match               kube.*
+        #     Regex               kubernetes.namespace_name demo
+
+      #   [FILTER]
+      #       Name   lua
+      #       Match  source.docker.*
+      #       script /fluent-bit/scripts/docker-metadata.lua
+      #       call   encrich_with_docker_metadata
       outputs: |
+        [OUTPUT]
+            Name              stdout
+            Match             *
         [OUTPUT]
             Name                 opentelemetry
             Match *
@@ -66,6 +77,9 @@ spec:
             Time_Key time
             Time_Format %Y-%m-%dT%H:%M:%S.%L
             Time_Keep On
+      
+
+    
     luaScripts:
       docker-metadata.lua: |
         DOCKER_VAR_DIR = '/var/lib/docker/containers/'

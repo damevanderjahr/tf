@@ -26,7 +26,7 @@ spec:
           - job_name: otel_collector
             scrape_interval: 5s
             static_configs:
-              - targets: ['collector:8889']
+               - targets: ['otel-collector-collector.monitoring.svc.cluster.local:8889']
           - job_name: 'prometheus'
             static_configs:
               - targets: [ 'localhost:9090' ]

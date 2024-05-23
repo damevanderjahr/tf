@@ -15,6 +15,12 @@ spec:
 
     # processors:
     #   batch:
+    processors:
+      attributes:
+        actions:
+        - action: insert
+          key: loki.attribute.labels
+          value: namespace_name
 
     # exporters:
     #   logging:
@@ -24,8 +30,9 @@ spec:
 
     exporters:
       logging:
+        loglevel: debug
       loki:
-        endpoint: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/pusht"
+        endpoint: http://loki.monitoring.svc.cluster.local:80/loki/api/v1/push
       prometheus:
         endpoint: "0.0.0.0:8889"
 
@@ -47,7 +54,7 @@ spec:
       pipelines:
         logs:
           receivers: [otlp]
-          exporters: [loki]
+          exporters: [logging,loki]
         traces:
           receivers: [otlp]
           exporters: [logging]
