@@ -25,7 +25,7 @@ spec:
     exporters:
       logging:
       loki:
-        endpoint: http://loki-write.monitoring.svc.cluster.local:3100/loki/api/v1/push
+        endpoint: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/pusht"
       prometheus:
         endpoint: "0.0.0.0:8889"
 

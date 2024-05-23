@@ -3,17 +3,41 @@ kind: HelmRelease
 metadata:
   name: loki
   namespace: monitoring
-# spec:
-#   releaseName: loki
-#   chart:
-#     spec:
-#       chart: loki
-#       version: 5.7.1
-#       sourceRef:
-#         kind: HelmRepository
-#         name: grafana
-#         namespace: flux-system
-#   interval: 5m
+spec:
+  releaseName: loki
+  chart:
+    spec:
+      chart: loki
+      version: 5.7.1
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: flux-system
+  interval: 5m
+  values:
+    mode: SingleBinary
+    loki:
+      commonConfig:
+        replication_factor: 1
+      storage:
+        type: 'filesystem'
+      schemaConfig:
+        configs:
+        - from: "2020-07-31"
+          store: tsdb
+          index:
+            prefix: loki_index_
+            period: 24h
+          object_store: filesystem # we're storing on filesystem so there's no real persistence here.
+          schema: v11
+    singleBinary:
+      replicas: 1
+    read:
+      replicas: 0
+    backend:
+      replicas: 0
+    write:
+      replicas: 0
 #   values:
 #     config:
 #       auth_enabled: false
